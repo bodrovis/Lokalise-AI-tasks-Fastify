@@ -5,22 +5,19 @@ import type {
 	PartialUploadFileParams,
 	ProcessUploadFileParams,
 } from "lokalise-file-exchange";
-import {
-	lokaliseApi,
-	lokaliseProjectId,
-	lokaliseUploader,
-} from "../services/lokalise-api.js";
+import { lokaliseApi, lokaliseUploader } from "../lokalise/api.js";
+import { lokaliseProjectId, targetLanguages } from "../lokalise/config.js";
 
 const tag = "ai-task";
 
 export default async function rootRoutes(app: FastifyInstance) {
 	app.get("/", async () => {
-		return { msg: "Hi!" };
+		return { msg: "Hello from Lokalise AI demo!" };
 	});
 
 	app.post("/lokalise-upload", async () => {
 		await uploadToLokalise();
-		
+
 		const keyIds = await prepareKeyIds();
 		console.log(keyIds);
 		await createLokaliseTask(keyIds);
@@ -30,13 +27,29 @@ export default async function rootRoutes(app: FastifyInstance) {
 }
 
 async function prepareKeyIds(): Promise<number[]> {
-	const { items } = await lokaliseApi.keys().list({
-		project_id: lokaliseProjectId,
-		filter_tags: tag,
-		limit: 500,
-	});
+	const paginationLimit = 500;
+	const allKeyIds = new Set<number>();
+	let cursor: string | undefined = "";
+	let hasNext = true;
 
-	return items.map(({ key_id }) => key_id);
+	while (hasNext) {
+		const keys = await lokaliseApi.keys().list({
+			project_id: lokaliseProjectId,
+			filter_tags: tag,
+			limit: paginationLimit,
+			pagination: "cursor",
+			cursor,
+		});
+
+		for (const { key_id } of keys.items) {
+			allKeyIds.add(key_id);
+		}
+
+		hasNext = keys.hasNextCursor();
+		cursor = hasNext ? (keys.nextCursor as string) : undefined;
+	}
+
+	return Array.from(allKeyIds);
 }
 
 async function createLokaliseTask(keyIds: number[] | string[]) {
@@ -46,7 +59,7 @@ async function createLokaliseTask(keyIds: number[] | string[]) {
 			description: "Use informal, casual tone",
 			task_type: "automatic_translation",
 			keys: keyIds,
-			languages: [{ language_iso: "fr" }],
+			languages: targetLanguages,
 			apply_ai_tm100_matches: true,
 			save_ai_translation_to_tm: true,
 		},
