@@ -104,7 +104,7 @@ async function uploadToLokalise() {
 	};
 
 	const collectFileParams: CollectFileParams = {
-		inputDirs: ["./locales"], // Directories to collect files from
+		inputDirs: ["./locales/en"], // Directories to collect files from
 		extensions: [".json"], // Collect JSON and XML files
 		recursive: true, // Collect files in all nested folders
 	};
