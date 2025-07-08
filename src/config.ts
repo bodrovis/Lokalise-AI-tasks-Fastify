@@ -13,3 +13,5 @@ export const lokaliseWebhooksSecret = process.env
 	.LOKALISE_WEBHOOKS_SECRET as string;
 
 export const targetLanguages = [{ language_iso: "fr" }];
+
+export const port = Number(process.env.PORT) || 3000;

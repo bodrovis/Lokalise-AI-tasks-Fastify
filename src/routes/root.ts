@@ -5,8 +5,8 @@ import type {
 	PartialUploadFileParams,
 	ProcessUploadFileParams,
 } from "lokalise-file-exchange";
+import { lokaliseProjectId, targetLanguages } from "../config.js";
 import { lokaliseApi, lokaliseUploader } from "../lokalise/api.js";
-import { lokaliseProjectId, targetLanguages } from "../lokalise/config.js";
 
 const tag = "ai-task";
 
@@ -15,14 +15,14 @@ export default async function rootRoutes(app: FastifyInstance) {
 		return { msg: "Hello from Lokalise AI demo!" };
 	});
 
-	app.post("/lokalise-upload", async () => {
+	app.post("/lokalise-upload", async (_req, reply) => {
 		await uploadToLokalise();
 
 		const keyIds = await prepareKeyIds();
 		console.log(keyIds);
 		await createLokaliseTask(keyIds);
 
-		return { msg: "Translation files uploaded" };
+		return reply.status(201).send({ msg: "Translation files uploaded" });
 	});
 }
 
@@ -53,6 +53,13 @@ async function prepareKeyIds(): Promise<number[]> {
 }
 
 async function createLokaliseTask(keyIds: number[] | string[]) {
+	if (keyIds.length === 0) {
+		console.warn(
+			"No keys found with the specified tag. Skipping task creation.",
+		);
+		return;
+	}
+
 	await lokaliseApi.tasks().create(
 		{
 			title: "English <> French (AI)",
@@ -119,5 +126,6 @@ async function uploadToLokalise() {
 	} catch (error) {
 		// Handle unexpected errors
 		console.error("Unexpected error:", error);
+		throw error;
 	}
 }

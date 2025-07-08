@@ -1,6 +1,6 @@
 import { LokaliseApi } from "@lokalise/node-api";
 import { LokaliseDownload, LokaliseUpload } from "lokalise-file-exchange";
-import { apiKey, lokaliseProjectId } from "./config.js";
+import { apiKey, lokaliseProjectId } from "../config.js";
 
 export const lokaliseUploader = new LokaliseUpload(
 	{
