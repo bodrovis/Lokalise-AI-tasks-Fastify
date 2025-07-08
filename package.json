@@ -3,7 +3,6 @@
 	"version": "1.0.0",
 	"description": "",
 	"scripts": {
-		"dev": "tsx watch src/index.ts",
 		"build": "tsup",
 		"start": "npm run build && node dist/index.js",
 		"lint": "npx @biomejs/biome check ./",
@@ -23,7 +22,6 @@
 		"@biomejs/biome": "^2.1.0",
 		"@types/node": "^24.0.7",
 		"tsup": "^8.5.0",
-		"tsx": "^4.20.3",
 		"typescript": "^5.8.3"
 	}
 }
