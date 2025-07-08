@@ -4,11 +4,10 @@ import type {
 } from "@lokalise/node-api";
 import type { FastifyInstance } from "fastify";
 import type { ExtractParams } from "lokalise-file-exchange";
-import { lokaliseDownloader } from "../lokalise/api.js";
+import { lokaliseApi, lokaliseDownloader } from "../lokalise/api.js";
 import {
 	lokaliseProjectId,
 	lokaliseWebhooksSecret,
-	targetLanguages,
 } from "../lokalise/config.js";
 
 export default async function webhooksRoutes(app: FastifyInstance) {
@@ -38,7 +37,11 @@ export default async function webhooksRoutes(app: FastifyInstance) {
 						`Task ${webhookPayload.task.title} (ID ${webhookPayload.task.id}) has been closed in project ${webhookPayload.project.name}`,
 					);
 
-					await downloadFromLokalise();
+					const downloadLangs = await getTaskTargetLanguages(
+						webhookPayload.task.id,
+					);
+
+					await downloadFromLokalise(downloadLangs);
 				}
 			}
 		}
@@ -47,14 +50,22 @@ export default async function webhooksRoutes(app: FastifyInstance) {
 	});
 }
 
-async function downloadFromLokalise() {
+async function getTaskTargetLanguages(taskId: number): Promise<string[]> {
+	const task = await lokaliseApi
+		.tasks()
+		.get(taskId, { project_id: lokaliseProjectId });
+	return task.languages.map((lang) => lang.language_iso);
+}
+
+async function downloadFromLokalise(downloadLangs: string[]) {
 	const downloadFileParams: DownloadFileParams = {
 		format: "json", // Format of downloaded translations
 		original_filenames: true, // Keep original filenames from Lokalise
 		indentation: "2sp", // Indentation style
 		directory_prefix: "", // Directory structure prefix (optional)
 		filter_data: ["translated"],
-		filter_langs: targetLanguages.map((lang) => lang.language_iso),
+		filter_langs: downloadLangs,
+		// filter_langs: targetLanguages.map((lang) => lang.language_iso),
 	};
 
 	const extractParams: ExtractParams = {
@@ -64,6 +75,8 @@ async function downloadFromLokalise() {
 	try {
 		// Download and extract translations
 		console.log("Starting the download...");
+		console.log(`Language IDs: ${downloadLangs}`);
+
 		await lokaliseDownloader.downloadTranslations({
 			downloadFileParams,
 			extractParams,
