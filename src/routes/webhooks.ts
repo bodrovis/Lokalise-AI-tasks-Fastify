@@ -28,7 +28,7 @@ export default async function webhooksRoutes(app: FastifyInstance) {
 
 		if (typeof payload === "object" && payload !== null) {
 			const webhookPayload = payload as WebhookProjectTaskClosed;
-			
+
 			if (
 				webhookPayload.event === "project.task.closed" &&
 				webhookPayload.project.id === lokaliseProjectId

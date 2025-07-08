@@ -1,11 +1,15 @@
 import path from "node:path";
+import type { TaskLanguage } from "@lokalise/node-api";
 import type { FastifyInstance } from "fastify";
 import type {
 	CollectFileParams,
 	PartialUploadFileParams,
 	ProcessUploadFileParams,
 } from "lokalise-file-exchange";
-import { lokaliseProjectId, targetLanguages } from "../config.js";
+import {
+	targetLanguages as defaultTargetLanguages,
+	lokaliseProjectId,
+} from "../config.js";
 import { lokaliseApi, lokaliseUploader } from "../lokalise/api.js";
 
 const tag = "ai-task";
@@ -15,12 +19,28 @@ export default async function rootRoutes(app: FastifyInstance) {
 		return { msg: "Hello from Lokalise AI demo!" };
 	});
 
-	app.post("/lokalise-upload", async (_req, reply) => {
+	app.post("/lokalise-upload", async (req, reply) => {
 		await uploadToLokalise();
 
 		const keyIds = await prepareKeyIds();
 		console.log(keyIds);
-		await createLokaliseTask(keyIds);
+
+		let languages = defaultTargetLanguages;
+
+		if (
+			Array.isArray(req.body) &&
+			req.body.every((item) => typeof item.language_iso === "string")
+		) {
+			languages = req.body;
+			console.log("Using languages from request:", languages);
+		} else {
+			console.log(
+				"No valid languages in request. Falling back to default:",
+				defaultTargetLanguages,
+			);
+		}
+
+		await createLokaliseTask(keyIds, languages);
 
 		return reply.status(201).send({ msg: "Translation files uploaded" });
 	});
@@ -52,7 +72,10 @@ async function prepareKeyIds(): Promise<number[]> {
 	return Array.from(allKeyIds);
 }
 
-async function createLokaliseTask(keyIds: number[] | string[]) {
+async function createLokaliseTask(
+	keyIds: number[] | string[],
+	targetLanguages: TaskLanguage[],
+) {
 	if (keyIds.length === 0) {
 		console.warn(
 			"No keys found with the specified tag. Skipping task creation.",
